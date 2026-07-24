@@ -63,8 +63,8 @@ type InputEvent struct {
 	RepeatCount     uint16
 
 	// Mouse Event Data
-	MouseX          uint16
-	MouseY          uint16
+	MouseX          int16
+	MouseY          int16
 	ButtonState     uint32
 	MouseEventFlags uint32
 	WheelDirection  int // 1 (forward/right), -1 (backward/left)
