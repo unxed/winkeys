@@ -32,21 +32,21 @@ const (
 
 // Mouse Event Flags (dwEventFlags)
 const (
-	MouseMoved      = 0x0001
-	DoubleClick     = 0x0002
-	MouseWheeled    = 0x0004
-	MouseHWheeled   = 0x0008
+	MouseMoved    = 0x0001
+	DoubleClick   = 0x0002
+	MouseWheeled  = 0x0004
+	MouseHWheeled = 0x0008
 )
 
 // EventType constants
 type EventType uint16
 
 const (
-	KeyEventType   EventType = 0x0001
-	MouseEventType EventType = 0x0002
-	FocusEventType EventType = 0x0010
-	PasteEventType EventType = 0x0020
-	Far2lEventType EventType = 0x0040
+	KeyEventType    EventType = 0x0001
+	MouseEventType  EventType = 0x0002
+	FocusEventType  EventType = 0x0010
+	PasteEventType  EventType = 0x0020
+	Far2lEventType  EventType = 0x0040
 	ResizeEventType EventType = 0x0080
 )
 
@@ -61,6 +61,17 @@ type InputEvent struct {
 	UnshiftedChar   rune
 	KeyDown         bool
 	RepeatCount     uint16
+
+	// TextInput marks committed text that must bypass shortcut handling, such as
+	// AltGr or composed input. It is meaningful for KeyEventType with KeyDown
+	// and a valid Char. Producers set it only when text intent is confirmed;
+	// a printable key code alone is not evidence. The zero value preserves
+	// existing key handling, including ordinary character shortcuts.
+	//
+	// Char carries one committed Unicode scalar. Multiple scalars are separate
+	// events. Physical key codes, modifiers, repeats and InputSource remain
+	// intact for consumers that forward input to another application.
+	TextInput bool
 
 	// Mouse Event Data
 	MouseX          int16
@@ -96,15 +107,33 @@ func (cks ControlKeyState) String() string {
 	if cks == NoKeyPressed {
 		controlKeys.WriteString("None")
 	} else {
-		if cks.Contains(RightAltPressed)  {controlKeys.WriteString("RightAlt,")}
-		if cks.Contains(LeftAltPressed)   {controlKeys.WriteString("Alt,")}
-		if cks.Contains(RightCtrlPressed) {controlKeys.WriteString("RightCtrl,")}
-		if cks.Contains(LeftCtrlPressed)  {controlKeys.WriteString("Ctrl,")}
-		if cks.Contains(ShiftPressed)     {controlKeys.WriteString("Shift,")}
-		if cks.Contains(NumLockOn)        {controlKeys.WriteString("NumLock,")}
-		if cks.Contains(ScrollLockOn)     {controlKeys.WriteString("ScrollLock,")}
-		if cks.Contains(CapsLockOn)       {controlKeys.WriteString("CapsLock,")}
-		if cks.Contains(EnhancedKey)      {controlKeys.WriteString("Enhanced,")}
+		if cks.Contains(RightAltPressed) {
+			controlKeys.WriteString("RightAlt,")
+		}
+		if cks.Contains(LeftAltPressed) {
+			controlKeys.WriteString("Alt,")
+		}
+		if cks.Contains(RightCtrlPressed) {
+			controlKeys.WriteString("RightCtrl,")
+		}
+		if cks.Contains(LeftCtrlPressed) {
+			controlKeys.WriteString("Ctrl,")
+		}
+		if cks.Contains(ShiftPressed) {
+			controlKeys.WriteString("Shift,")
+		}
+		if cks.Contains(NumLockOn) {
+			controlKeys.WriteString("NumLock,")
+		}
+		if cks.Contains(ScrollLockOn) {
+			controlKeys.WriteString("ScrollLock,")
+		}
+		if cks.Contains(CapsLockOn) {
+			controlKeys.WriteString("CapsLock,")
+		}
+		if cks.Contains(EnhancedKey) {
+			controlKeys.WriteString("Enhanced,")
+		}
 	}
 
 	return strings.TrimRight(controlKeys.String(), ",")
@@ -120,6 +149,9 @@ func (e InputEvent) String() string {
 	legacyStr := ""
 	if e.IsLegacy {
 		legacyStr = " [Legacy]"
+	}
+	if e.TextInput {
+		legacyStr += " [TextInput]"
 	}
 
 	if e.Type == KeyEventType {
